@@ -1,0 +1,45 @@
+Jailing SFTP user
+=================
+
+groupadd sftponly
+	mkdir -p /home/chroot/$NEWUSER
+	useradd -d /home/$NEWUSER -s /bin/false -G sftponly $NEWUSER
+	passwd $NEWUSER
+
+#2. Update /etc/ssh/sshd_config
+
+# Comment this #Subsystem       sftp    /usr/libexec/openssh/sftp-server
+#add this
+
+Subsystem     sftp   internal-sftp
+Match Group sftponly
+     ChrootDirectory %h
+     X11Forwarding no
+     AllowTCPForwarding no
+     ForceCommand internal-sftp
+#3. Test the configuration, and reload sshd:
+sshd -t
+service sshd reload
+
+#4. 
+ chmod 711 /home/chroot            # This prevents chrooted users from seeing other chrooted users' homedirs
+chmod 755 /home/$NEWUSER
+chown root:root /home/$NEWUSER
+
+#5. fstab
+/var/www/html   /home/$NEWUSER/www        none    bind    0 0
+
+#6. 
+mkdir /home/$NEWUSER/www
+chown apache:sftponly  /home/$NEWUSER/www
+mount -a
+
+
+
+
+
+Another way to set the permission..
+# setfacl -Rm u:$NEWUSER:rwX /home/chroot/$NEWUSER/www/
+# setfacl -Rm d:u:$NEWUSER:rwX /home/chroot/$NEWUSER/www/
+
+									
