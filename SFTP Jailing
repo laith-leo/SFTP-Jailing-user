@@ -1,45 +1,43 @@
-Jailing SFTP user
-=================
+#!/bin/bash
+#Version: 1.0
+#Date: August, 8, 2016
+#Author: Laith Al Obaidy, laith.alobaidy@rackspace.com, laith@laithalobaidy.com
 
-groupadd sftponly
-	mkdir -p /home/chroot/$NEWUSER
-	useradd -d /home/$NEWUSER -s /bin/false -G sftponly $NEWUSER
-	passwd $NEWUSER
-
-#2. Update /etc/ssh/sshd_config
-
-# Comment this #Subsystem       sftp    /usr/libexec/openssh/sftp-server
-#add this
-
-Subsystem     sftp   internal-sftp
-Match Group sftponly
-     ChrootDirectory %h
-     X11Forwarding no
-     AllowTCPForwarding no
-     ForceCommand internal-sftp
-#3. Test the configuration, and reload sshd:
-sshd -t
-service sshd reload
-
-#4. 
- chmod 711 /home/chroot            # This prevents chrooted users from seeing other chrooted users' homedirs
-chmod 755 /home/$NEWUSER
-chown root:root /home/$NEWUSER
-
-#5. fstab
-/var/www/html   /home/$NEWUSER/www        none    bind    0 0
-
-#6. 
-mkdir /home/$NEWUSER/www
-chown apache:sftponly  /home/$NEWUSER/www
-mount -a
+################################################################################
+echo 'Enter the domain name:'
+read DOMAIN
 
 
+#Checking Apache group, Debian based or RHEL.
+if [ -f /etc/redhat-release ]; then
+	GROUP=apache
+   else
+	GROUP=www-data
+fi
+##
 
+if [ -d /var/www/vhosts/$DOMAIN ]; then
+echo "Your domain $DOMAIN is exist!!"
 
+groupadd sftponly #exec 2>/dev/null 
+useradd -s /sbin/nologin $DOMAIN #exec 2>/dev/null
+usermod -G$GROUP,sftponly $DOMAIN
+mkdir -p /home/$DOMAIN/$DOMAIN
+chown root:root /home/$DOMAIN
+chmod 755 /home/$DOMAIN
+echo "/var/www/vhosts/$DOMAIN /home/$DOMAIN/$DOMAIN none rw,bind,nobootwait 0 0" >> /etc/fstab
+mount /home/$DOMAIN/$DOMAIN
+echo "$DOMAIN:$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1)" >> /tmp/passwords.txt
+cat /tmp/passwords.txt | chpasswd
 
-Another way to set the permission..
-# setfacl -Rm u:$NEWUSER:rwX /home/chroot/$NEWUSER/www/
-# setfacl -Rm d:u:$NEWUSER:rwX /home/chroot/$NEWUSER/www/
+echo "  "
+echo "Your domain $DOMAIN has been jailed into /home/$DOMAIN"
+echo "Your domain user password is `cat /tmp/passwords.txt`"
+echo " "
+rm -rf /tmp/passwords.txt
 
-									
+else
+echo "Your domain $DOMAIN does not exist in /var/www/vhosts"
+fi
+
+#EOT
