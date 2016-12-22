@@ -1,42 +1,74 @@
 #!/bin/bash
-#Version: 1.0
-#Date: August, 8, 2016
-#Author: Laith Al Obaidy,laith@laith.info
+# 
+# Usage: Create an SFTP jailed user for a system directory with no login shell. This script works on both RHEL and Debian based Linux systems.
+# Authuor: Laith Al Obaidy
+# Email: laith@laith.info
+# URL: www.laith.info
+# Date: 10/20/2016
+# version: 1.0.0
+##
+#
+#### NOTE NOTE NOTE ####
+#
+#MAKE SURE THE /etc/ssh/sshd_config has the following configuration in the SFTP section (in the bottom of the file), 
+#after making this change, make sure that no errors with it by issuing the command 'sshd -t'. So replace the line "Subsystem      sftp    /usr/libexec/openssh/sftp-server" 
+#with:
+#
+#
+#
+#       Subsystem     sftp   internal-sftp
+#       Match Group sftponly
+#       ChrootDirectory %h
+#       X11Forwarding no
+#       AllowTCPForwarding no
+#       ForceCommand internal-sftp
+#
+#
+#
+#Test the config by issuing the command 'sshd -t', then reload SSH service.
 
-################################################################################
-echo 'Enter the domain name:'
-read DOMAIN
+#Script starts..
 
+ LOCATION=$1
+ SITENAME=$2
+ SFTPUSER=$3
+
+echo 'Please enter the site locaition:'
+read LOCAITION
+#Testing if the requested path is exist on the system.
+if [ -d $LOCAITION ]; then
+        echo "The path $LOCATION is exist!!"
+                else
+        echo "$LOCATION is not a valid path!" && exit 33
+fi
+
+
+echo 'Please enter a name for the Jailed path...'
+read SITENAME
+
+echo 'Please enter a username'
+read SFTPUSER
 
 #Checking Apache group, Debian based or RHEL.
 if [ -f /etc/redhat-release ]; then
-	GROUP=apache
+        GROUP=apache
    else
-	GROUP=www-data
+        GROUP=www-data
 fi
-##
-if [ -d /var/www/vhosts/$DOMAIN ]; then
-echo "Your domain $DOMAIN is exist!!"
-
-groupadd sftponly #exec 2>/dev/null 
-useradd -s /sbin/nologin $DOMAIN #exec 2>/dev/null
-usermod -G$GROUP,sftponly $DOMAIN
-mkdir -p /home/$DOMAIN/$DOMAIN
-chown root:root /home/$DOMAIN
-chmod 755 /home/$DOMAIN
-echo "/var/www/vhosts/$DOMAIN /home/$DOMAIN/$DOMAIN none rw,bind,nobootwait 0 0" >> /etc/fstab
-mount /home/$DOMAIN/$DOMAIN
-echo "$DOMAIN:$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1)" >> /tmp/passwords.txt
+groupadd sftponly
+useradd -s /sbin/nologin $SFTPUSER
+usermod -G$GROUP,sftponly $SFTPUSER
+mkdir -p /home/$SFTPUSER/$SITENAME
+chown root:root /home/$SFTPUSER
+chmod 755 /home/$SFTPUSER
+echo "$LOCAITION /home/$SFTPUSER/$SITENAME none rw,bind,nobootwait 0 0" >> /etc/fstab
+mount $LOCAITION
+chown $SFTPUSER:$GROUP /home/$SFTPUSER/$SITENAME
+echo "$SFTPUSER:$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1)" >> /tmp/passwords.txt
 cat /tmp/passwords.txt | chpasswd
-
 echo "  "
-echo "Your domain $DOMAIN has been jailed into /home/$DOMAIN"
-echo "Your domain user password is `cat /tmp/passwords.txt`"
+echo "Your site $SITENAME files has been jailed into /home/$SFTPUSER"
+echo "Your domain user $SFTPUSER's password is `cat /tmp/passwords.txt`"
 echo " "
 rm -rf /tmp/passwords.txt
-
-else
-echo "Your domain $DOMAIN does not exist in /var/www/vhosts"
-fi
-
 #EOT
