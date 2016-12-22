@@ -67,7 +67,7 @@ chown $SFTPUSER:$GROUP /home/$SFTPUSER/$SITENAME
 echo "$SFTPUSER:$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1)" >> /tmp/passwords.txt
 cat /tmp/passwords.txt | chpasswd
 echo "  "
-echo "Your site $SITENAME files has been jailed into /home/$SFTPUSER"
+echo "Your path $SITENAME has been jailed into /home/$SFTPUSER"
 echo "Your domain user $SFTPUSER's password is `cat /tmp/passwords.txt`"
 echo " "
 rm -rf /tmp/passwords.txt
