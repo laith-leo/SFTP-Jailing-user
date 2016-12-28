@@ -33,7 +33,7 @@
  SITENAME=$2
  SFTPUSER=$3
 
-echo 'Please enter the a path-to-be-jailed location:'
+echo 'Please enter a path-to-be-jailed location:'
 read LOCAITION
 #Testing if the requested path is exist on the system.
 if [ -d $LOCAITION ]; then
