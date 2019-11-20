@@ -1,2 +1,2 @@
-# -NIX
-UNIX and Linux General stuff (On the fly)
+# Setting an SFTP Jailed user
+
